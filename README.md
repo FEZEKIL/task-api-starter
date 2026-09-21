@@ -11,7 +11,7 @@ FlyRank Backend AI Engineering internship.
 - Delete tasks
 - Health check
 - Swagger/OpenAPI documentation
-- In-memory storage
+- **Persistent storage with SQLite**
 
 ## Tech Stack
 
@@ -19,6 +19,20 @@ FlyRank Backend AI Engineering internship.
 - FastAPI
 - Uvicorn
 - pytest
+- **SQLite**
+
+## Database
+
+This project uses **SQLite** for data persistence. 
+
+- **Why SQLite?** It's lightweight, serverless, and stores the entire database in a single file (`tasks.db`). This makes it perfect for development and small applications without needing a complex database server setup.
+- **Storage**: The database is stored in `tasks.db` in the project root. This file is automatically created and initialized with example tasks on the first run.
+
+### Example SQL Query
+You can inspect the database using any SQLite viewer. Here is an example query to list all tasks:
+```sql
+SELECT * FROM tasks;
+```
 
 ## Run Locally
 
@@ -46,10 +60,10 @@ Swagger: http://localhost:8000/docs
 
 ## Extras
 
-- **Filtering**: `GET /tasks?done=true` or `GET /tasks?done=false`
-- **Search**: `GET /tasks?search=milk`
-- **Stats**: `GET /stats` returns a summary of tasks.
-- **Reset**: `POST /reset` restores the initial 3 example tasks.
+- **Filtering**: `GET /tasks?done=true` or `GET /tasks?done=false` (using SQL `WHERE`)
+- **Search**: `GET /tasks?search=milk` (using SQL `LIKE`)
+- **Stats**: `GET /stats` (using SQL `COUNT()`)
+- **Reset**: `POST /reset` (clears and restores initial tasks)
 
 ## Example Usage
 
@@ -57,32 +71,20 @@ Swagger: http://localhost:8000/docs
 ```bash
 curl -i http://localhost:8000/tasks
 ```
-Output:
-```
-HTTP/1.1 200 OK
-content-length: 154
-content-type: application/json
-
-[{"id":1,"title":"Buy groceries","done":false},{"id":2,"title":"Read a book","done":true},{"id":3,"title":"Write some code","done":false}]
-```
 
 ### Create a task
 ```bash
 curl -i -X POST http://localhost:8000/tasks -H "Content-Type: application/json" -d '{"title":"Buy milk"}'
 ```
-Output:
-```
-HTTP/1.1 201 Created
-content-length: 44
-content-type: application/json
-
-{"id":4,"title":"Buy milk","done":false}
-```
 
 ## Swagger UI Screenshot
 
 ![Swagger UI](screenshots/swagger.png)
-*(Note: Replace this placeholder with an actual screenshot from your local /docs page)*
+
+## Database Viewer Screenshot
+
+![Database Viewer](screenshots/database.png)
+*(Note: Replace this placeholder with a screenshot of your DB Browser for SQLite showing the tasks table)*
 
 ## Project Stages
 

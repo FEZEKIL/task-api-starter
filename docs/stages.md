@@ -14,8 +14,8 @@
 - [x] Stage 1 — Read from database
 - [x] Stage 2 — Create new tasks
 - [x] Stage 3 — Update and delete with SQL
-- [ ] Stage 4 — Explore SQLite
-- [ ] Stage 5 — Database documentation
+- [x] Stage 4 — Explore SQLite
+- [x] Stage 5 — Database documentation
 
 ## Stage Completion Rules
 
