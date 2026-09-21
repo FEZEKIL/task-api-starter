@@ -43,3 +43,16 @@ def test_create_task_invalid():
     response = client.post("/tasks", json={})
     assert response.status_code == 400
     assert "error" in response.json()
+
+def test_update_task():
+    response = client.put("/tasks/1", json={"title": "Updated", "done": True})
+    assert response.status_code == 200
+    assert response.json()["title"] == "Updated"
+    assert response.json()["done"] is True
+
+def test_delete_task():
+    response = client.delete("/tasks/1")
+    assert response.status_code == 204
+
+    response = client.get("/tasks/1")
+    assert response.status_code == 404

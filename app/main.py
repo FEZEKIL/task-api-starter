@@ -52,3 +52,51 @@ def create_task(task_data: dict = Body(...)):
     }
     tasks.append(new_task)
     return new_task
+
+@app.put("/tasks/{task_id}")
+def update_task(task_id: int, task_data: dict = Body(...)):
+    task = next((task for task in tasks if task["id"] == task_id), None)
+    if task is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {task_id} not found"}
+        )
+
+    title = task_data.get("title")
+    done = task_data.get("done")
+
+    if title is None and done is None:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "At least one of 'title' or 'done' must be provided"}
+        )
+
+    if title is not None:
+        if not isinstance(title, str) or not title.strip():
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Title cannot be empty"}
+            )
+        task["title"] = title
+
+    if done is not None:
+        if not isinstance(done, bool):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Done must be a boolean"}
+            )
+        task["done"] = done
+
+    return task
+
+@app.delete("/tasks/{task_id}", status_code=204)
+def delete_task(task_id: int):
+    global tasks
+    task = next((task for task in tasks if task["id"] == task_id), None)
+    if task is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {task_id} not found"}
+        )
+    tasks = [t for t in tasks if t["id"] != task_id]
+    return None
