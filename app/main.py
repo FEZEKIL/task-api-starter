@@ -10,6 +10,11 @@ app = FastAPI(title="Task API", version="1.0")
 def startup_event():
     init_db()
 
+def format_task(row):
+    task = dict(row)
+    task["done"] = bool(task["done"])
+    return task
+
 @app.get("/", summary="API Information")
 def read_root():
     """Returns basic information about the Task API."""
@@ -48,7 +53,7 @@ def get_tasks(
     rows = cursor.fetchall()
     conn.close()
 
-    return [dict(row) for row in rows]
+    return [format_task(row) for row in rows]
 
 @app.get("/tasks/{task_id}", summary="Get a single task")
 def get_task(task_id: int):
@@ -64,7 +69,7 @@ def get_task(task_id: int):
             status_code=404,
             content={"error": f"Task {task_id} not found"}
         )
-    return dict(row)
+    return format_task(row)
 
 @app.post("/tasks", status_code=201, summary="Create a new task")
 def create_task(task_data: dict = Body(...)):
@@ -86,14 +91,81 @@ def create_task(task_data: dict = Body(...)):
     new_task = cursor.fetchone()
     conn.close()
 
-    return dict(new_task)
+    return format_task(new_task)
 
 @app.put("/tasks/{task_id}", summary="Update a task")
 def update_task(task_id: int, task_data: dict = Body(...)):
-    return {"message": "Update logic not yet migrated to DB"}
+    """Updates an existing task in the database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    task = cursor.fetchone()
+
+    if task is None:
+        conn.close()
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {task_id} not found"}
+        )
+
+    title = task_data.get("title")
+    done = task_data.get("done")
+
+    if title is None and done is None:
+        conn.close()
+        return JSONResponse(
+            status_code=400,
+            content={"error": "At least one of 'title' or 'done' must be provided"}
+        )
+
+    update_fields = []
+    params = []
+    if title is not None:
+        if not isinstance(title, str) or not title.strip():
+            conn.close()
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Title cannot be empty"}
+            )
+        update_fields.append("title = ?")
+        params.append(title)
+
+    if done is not None:
+        if not isinstance(done, bool):
+            conn.close()
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Done must be a boolean"}
+            )
+        update_fields.append("done = ?")
+        params.append(1 if done else 0)
+
+    params.append(task_id)
+    cursor.execute(f"UPDATE tasks SET {', '.join(update_fields)} WHERE id = ?", params)
+    conn.commit()
+
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    updated_task = cursor.fetchone()
+    conn.close()
+
+    return format_task(updated_task)
 
 @app.delete("/tasks/{task_id}", status_code=204, summary="Delete a task")
 def delete_task(task_id: int):
+    """Removes a task from the database."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    if cursor.fetchone() is None:
+        conn.close()
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task {task_id} not found"}
+        )
+
+    cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    conn.commit()
+    conn.close()
     return None
 
 @app.get("/stats", summary="Task statistics")
