@@ -69,11 +69,24 @@ def get_task(task_id: int):
 @app.post("/tasks", status_code=201, summary="Create a new task")
 def create_task(task_data: dict = Body(...)):
     """Creates a new task in the database."""
-    # TODO: Implement database insert in Stage 2
-    # For now, keeping a dummy response or partial implementation if needed
-    # But Stage 1 is just about Read. I'll leave the old logic or a placeholder.
-    # The user said "Don't change the CRUD endpoints yet" but Stage 1 specifically says replace Read.
-    return {"message": "Create logic not yet migrated to DB"}
+    title = task_data.get("title")
+    if not title or not isinstance(title, str) or not title.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Title is required and cannot be empty"}
+        )
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO tasks (title, done) VALUES (?, ?)', (title, 0))
+    new_id = cursor.lastrowid
+    conn.commit()
+
+    cursor.execute('SELECT * FROM tasks WHERE id = ?', (new_id,))
+    new_task = cursor.fetchone()
+    conn.close()
+
+    return dict(new_task)
 
 @app.put("/tasks/{task_id}", summary="Update a task")
 def update_task(task_id: int, task_data: dict = Body(...)):
