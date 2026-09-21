@@ -9,3 +9,7 @@ venv/
 .vscode/
 .idea/
 .DS_Store
+
+# Database
+tasks.db
+*.db

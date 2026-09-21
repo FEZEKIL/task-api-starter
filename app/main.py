@@ -2,8 +2,13 @@ from fastapi import FastAPI, HTTPException, Body, Query
 from fastapi.responses import JSONResponse
 from typing import Optional, List
 import copy
+from app.database import init_db
 
 app = FastAPI(title="Task API", version="1.0")
+
+@app.on_event("startup")
+def startup_event():
+    init_db()
 
 INITIAL_TASKS = [
     {"id": 1, "title": "Buy groceries", "done": False},

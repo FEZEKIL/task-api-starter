@@ -2,13 +2,13 @@
 
 ## Project
 
-Task API — FlyRank Backend AI Engineering BE-01.
+Task API — FlyRank Backend AI Engineering BE-02.
 
-This repository implements a small CRUD API using Python and FastAPI.
+This repository implements a small CRUD API using Python and FastAPI, now backed by a SQLite database.
 
 ## Primary Goal
 
-Build and publish a fully functional in-memory task management API.
+Replace the in-memory storage with a persistent SQLite database while maintaining the same API contract.
 
 ## Technology
 
@@ -16,18 +16,21 @@ Build and publish a fully functional in-memory task management API.
 - FastAPI
 - Uvicorn
 - pytest
+- SQLite
+- sqlite3 (Python standard library)
 - Swagger/OpenAPI via FastAPI
 
 ## Important Constraints
 
-1. Tasks must remain in memory.
-2. Do not add a database.
-3. Do not add file persistence.
-4. Restarting the server must reset the task list.
-5. Required endpoints must remain available.
+1. Tasks must be stored in a SQLite database (`tasks.db`).
+2. Data must survive server restarts.
+3. The database and table must be created automatically if they don't exist.
+4. Three example tasks must be inserted only if the table is empty.
+5. Required endpoints must remain available and behave identically to BE-01.
 6. Required HTTP status codes must not be changed.
 7. Validation errors must return JSON containing `error`.
 8. Swagger UI must remain available at `/docs`.
+9. `tasks.db` must NOT be committed to Git.
 
 ## Required Endpoints
 
@@ -49,31 +52,25 @@ Build and publish a fully functional in-memory task management API.
 - Invalid request: 400
 - Unknown task: 404
 
-## Development Stages
+## Development Stages (BE-02)
 
-### Stage 0 — Hello Server
-Create the FastAPI application and verify localhost:8000.
+### Stage 0 — Create SQLite database
+Create `tasks.db` and the `tasks` table. Insert example tasks if empty.
 
-### Stage 1 — Root and Health
-Implement `/` and `/health`.
+### Stage 1 — Read from database
+Replace in-memory read logic with SQL queries.
 
-### Stage 2 — Read
-Add in-memory tasks and GET endpoints.
+### Stage 2 — Create new tasks
+Replace in-memory creation with SQL `INSERT`.
 
-### Stage 3 — Create
-Add POST `/tasks` with validation.
+### Stage 3 — Update and delete with SQL
+Replace in-memory update/delete with SQL `UPDATE` and `DELETE`.
 
-### Stage 4 — Update/Delete
-Complete CRUD.
+### Stage 4 — Explore SQLite
+Verify manual SQL queries and API reflection.
 
-### Stage 5 — Swagger
-Document endpoints and verify `/docs`.
-
-### Stage 6 — GitHub
-Prepare README, screenshots and publish repository.
-
-### Stage 7 — AI vs Me
-Optional AI-generated implementation comparison.
+### Stage 5 — Database Documentation
+Update README with SQLite details and database screenshots.
 
 ## Agent Rules
 
@@ -90,4 +87,4 @@ Before modifying code:
 
 ## Current Stage
 
-Stage 6 — Publish and docs.
+BE-02 Stage 0 — Create SQLite database.
