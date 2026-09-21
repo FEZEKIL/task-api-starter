@@ -10,10 +10,10 @@
 - [x] Stage 6 — GitHub publication
 
 ## BE-02 — Database Persistence
-- [ ] Stage 0 — Create SQLite database
-- [ ] Stage 1 — Read from database
-- [ ] Stage 2 — Create new tasks
-- [ ] Stage 3 — Update and delete with SQL
+- [x] Stage 0 — Create SQLite database
+- [x] Stage 1 — Read from database
+- [x] Stage 2 — Create new tasks
+- [x] Stage 3 — Update and delete with SQL
 - [ ] Stage 4 — Explore SQLite
 - [ ] Stage 5 — Database documentation
 
