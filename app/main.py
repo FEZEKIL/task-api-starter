@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import JSONResponse
 
-app = FastAPI()
+app = FastAPI(title="Task API", version="1.0")
 
 tasks = [
     {"id": 1, "title": "Buy groceries", "done": False},
@@ -9,24 +9,28 @@ tasks = [
     {"id": 3, "title": "Write some code", "done": False},
 ]
 
-@app.get("/")
+@app.get("/", summary="API Information")
 def read_root():
+    """Returns basic information about the Task API."""
     return {
         "name": "Task API",
         "version": "1.0",
         "endpoints": ["/tasks"]
     }
 
-@app.get("/health")
+@app.get("/health", summary="Health Check")
 def health_check():
+    """Returns the status of the API."""
     return {"status": "ok"}
 
-@app.get("/tasks")
+@app.get("/tasks", summary="List all tasks")
 def get_tasks():
+    """Returns a list of all tasks in the system."""
     return tasks
 
-@app.get("/tasks/{task_id}")
+@app.get("/tasks/{task_id}", summary="Get a single task")
 def get_task(task_id: int):
+    """Returns a single task by its ID."""
     task = next((task for task in tasks if task["id"] == task_id), None)
     if task is None:
         return JSONResponse(
@@ -35,8 +39,9 @@ def get_task(task_id: int):
         )
     return task
 
-@app.post("/tasks", status_code=201)
+@app.post("/tasks", status_code=201, summary="Create a new task")
 def create_task(task_data: dict = Body(...)):
+    """Creates a new task with the provided title."""
     title = task_data.get("title")
     if not title or not isinstance(title, str) or not title.strip():
         return JSONResponse(
@@ -53,8 +58,9 @@ def create_task(task_data: dict = Body(...)):
     tasks.append(new_task)
     return new_task
 
-@app.put("/tasks/{task_id}")
+@app.put("/tasks/{task_id}", summary="Update a task")
 def update_task(task_id: int, task_data: dict = Body(...)):
+    """Updates an existing task's title and/or done status."""
     task = next((task for task in tasks if task["id"] == task_id), None)
     if task is None:
         return JSONResponse(
@@ -89,8 +95,9 @@ def update_task(task_id: int, task_data: dict = Body(...)):
 
     return task
 
-@app.delete("/tasks/{task_id}", status_code=204)
+@app.delete("/tasks/{task_id}", status_code=204, summary="Delete a task")
 def delete_task(task_id: int):
+    """Removes a task from the system."""
     global tasks
     task = next((task for task in tasks if task["id"] == task_id), None)
     if task is None:
