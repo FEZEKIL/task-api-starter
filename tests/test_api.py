@@ -31,3 +31,15 @@ def test_get_task_not_found():
     response = client.get("/tasks/99")
     assert response.status_code == 404
     assert response.json() == {"error": "Task 99 not found"}
+
+def test_create_task():
+    response = client.post("/tasks", json={"title": "Buy milk"})
+    assert response.status_code == 201
+    data = response.json()
+    assert data["title"] == "Buy milk"
+    assert data["done"] is False
+
+def test_create_task_invalid():
+    response = client.post("/tasks", json={})
+    assert response.status_code == 400
+    assert "error" in response.json()
