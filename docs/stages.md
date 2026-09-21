@@ -6,7 +6,7 @@
 - [x] Stage 3 — Create endpoint
 - [x] Stage 4 — Update and delete
 - [x] Stage 5 — Swagger UI
-- [ ] Stage 6 — GitHub publication
+- [x] Stage 6 — GitHub publication
 - [ ] Stage 7 — AI vs Me (optional)
 
 ## Stage Completion Rules

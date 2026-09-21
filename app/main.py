@@ -1,13 +1,17 @@
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Query
 from fastapi.responses import JSONResponse
+from typing import Optional, List
+import copy
 
 app = FastAPI(title="Task API", version="1.0")
 
-tasks = [
+INITIAL_TASKS = [
     {"id": 1, "title": "Buy groceries", "done": False},
     {"id": 2, "title": "Read a book", "done": True},
     {"id": 3, "title": "Write some code", "done": False},
 ]
+
+tasks = copy.deepcopy(INITIAL_TASKS)
 
 @app.get("/", summary="API Information")
 def read_root():
@@ -15,7 +19,7 @@ def read_root():
     return {
         "name": "Task API",
         "version": "1.0",
-        "endpoints": ["/tasks"]
+        "endpoints": ["/tasks", "/health", "/stats"]
     }
 
 @app.get("/health", summary="Health Check")
@@ -24,9 +28,17 @@ def health_check():
     return {"status": "ok"}
 
 @app.get("/tasks", summary="List all tasks")
-def get_tasks():
-    """Returns a list of all tasks in the system."""
-    return tasks
+def get_tasks(
+    done: Optional[bool] = Query(None, description="Filter by completion status"),
+    search: Optional[str] = Query(None, description="Search tasks by title")
+):
+    """Returns a list of tasks, optionally filtered by status or search term."""
+    filtered_tasks = tasks
+    if done is not None:
+        filtered_tasks = [t for t in filtered_tasks if t["done"] == done]
+    if search is not None:
+        filtered_tasks = [t for t in filtered_tasks if search.lower() in t["title"].lower()]
+    return filtered_tasks
 
 @app.get("/tasks/{task_id}", summary="Get a single task")
 def get_task(task_id: int):
@@ -107,3 +119,21 @@ def delete_task(task_id: int):
         )
     tasks = [t for t in tasks if t["id"] != task_id]
     return None
+
+@app.get("/stats", summary="Task statistics")
+def get_stats():
+    """Returns statistics about tasks."""
+    total = len(tasks)
+    done_count = sum(1 for t in tasks if t["done"])
+    return {
+        "total": total,
+        "done": done_count,
+        "open": total - done_count
+    }
+
+@app.post("/reset", summary="Reset tasks to initial state")
+def reset_tasks():
+    """Restores the example tasks and clears all others."""
+    global tasks
+    tasks = copy.deepcopy(INITIAL_TASKS)
+    return {"message": "Tasks reset to initial state"}
