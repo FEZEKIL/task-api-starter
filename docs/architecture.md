@@ -2,73 +2,67 @@
 
 ## Overview
 
-The **Task API** follows a clean, layered architecture implementing the **Repository Pattern**. This pattern decouples business logic and HTTP routing from the underlying data persistence mechanism.
+The **Task API** follows a clean, layered architecture incorporating the **Repository Pattern** for data storage and **Supabase Auth** for identity provider authentication and route protection.
 
 ```
-       ┌───────────────────────────────┐
-       │   HTTP Routes (app/main.py)   │
-       └──────────────┬────────────────┘
-                      │
-                      ▼
-       ┌───────────────────────────────┐
-       │   Service Layer (services.py) │
-       └──────────────┬────────────────┘
-                      │
-                      ▼
-       ┌───────────────────────────────┐
-       │ Repository Abstraction (repo) │
-       └──────────────┬────────────────┘
-                      │
-         ┌────────────┴────────────┐
-         ▼                         ▼
-┌──────────────────┐      ┌──────────────────┐
-│  SQLite Repository│      │PostgreSQL Repository
-│(sqlite_repository)│     │(postgres_repository)
-└──────────────────┘      └──────────────────┘
+                    ┌───────────────────────────┐
+                    │       Supabase Auth       │
+                    │   (Identity Provider)     │
+                    └─────────────┬─────────────┘
+                                  │
+                       Issues / Verifies JWT
+                                  │
+                                  ▼
+       ┌─────────────────────────────────────────────────┐
+       │             HTTP Routes (app/main.py)           │
+       │   Public Routes          Protected Routes       │
+       │  (/public/info)   (Depends: get_current_user)  │
+       └──────────────────────────┬──────────────────────┘
+                                  │
+                                  ▼
+       ┌─────────────────────────────────────────────────┐
+       │           Service Layer (app/services.py)       │
+       └──────────────────────────┬──────────────────────┘
+                                  │
+                                  ▼
+       ┌─────────────────────────────────────────────────┐
+       │         Repository Abstraction (repo)          │
+       └──────────────────────────┬──────────────────────┘
+                                  │
+         ┌────────────────────────┴────────────────────────┐
+         ▼                                                 ▼
+┌──────────────────┐                              ┌──────────────────┐
+│ SQLite Repository│                              │ Postgres Repository
+│(sqlite_repository)                              │(postgres_repository)
+└──────────────────┘                              └──────────────────┘
 ```
 
 ## Architectural Rules
 
-1. **Routes Layer (`app/main.py`)**:
-   - Manages HTTP status codes (200, 201, 204, 400, 404).
+1. **Authentication & Authorization**:
+   - Uses Supabase Auth as the external Identity Provider (IdP).
+   - User credentials (email/password) are submitted to `POST /auth/signup` and `POST /auth/login`.
+   - On successful authentication, Supabase returns a JSON Web Token (JWT) Access Token.
+   - Protected routes (`/protected/profile`, `/protected/dashboard`, `/auth/logout`) use the FastAPI dependency `get_current_user`.
+   - The dependency extracts the Bearer token from the `Authorization: Bearer <token>` HTTP header and verifies it via `supabase.auth.get_user(token)`.
+   - Requests without a token or with an invalid/expired token immediately fail with HTTP 401 (`{"error": "Access token required"}` or `{"error": "Invalid or expired token"}`).
+
+2. **Routes Layer (`app/main.py` / `app/auth.py`)**:
+   - Manages HTTP status codes (200, 201, 204, 400, 401, 404).
    - Validates JSON body inputs and query parameters.
-   - Delegates business operations directly to `TaskService`.
-   - **Contains zero database-specific code**.
+   - Delegates business operations directly to `TaskService` and authentication to Supabase Auth.
 
-2. **Service Layer (`app/services.py`)**:
+3. **Service Layer (`app/services.py`)**:
    - Orchestrates domain operations (`list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task`, `get_stats`, `reset_tasks`).
-   - Translates domain models to dict representations.
    - Delegates persistence calls to `TaskRepository`.
-   - **Contains zero database-specific SQL or driver logic**.
 
-3. **Repository Abstraction (`app/repository.py`)**:
+4. **Repository Abstraction (`app/repository.py`)**:
    - Defines the abstract base class `TaskRepository`.
-   - Specifies contract methods:
-     - `init_db()`
-     - `get_all(done, search)`
-     - `get_by_id(task_id)`
-     - `create(title)`
-     - `update(task_id, title, done)`
-     - `delete(task_id)`
-     - `get_stats()`
-     - `reset()`
+   - Specifies storage contract methods (`init_db`, `get_all`, `get_by_id`, `create`, `update`, `delete`, `get_stats`, `reset`).
+   - Supports both `SQLiteTaskRepository` and `PostgresTaskRepository`.
 
-4. **Repository Implementations**:
-   - **`SQLiteTaskRepository`**: Embedded file-based storage using Python's standard `sqlite3` module.
-   - **`PostgresTaskRepository`**: Containerized database storage using `psycopg2-binary`.
+## Security Trust Triangle
 
-5. **Storage Swapping**:
-   - The factory function `get_repository()` evaluates the environment variable `DATABASE_URL` or `DB_TYPE`.
-   - When running locally, it defaults to SQLite.
-   - When running in Docker Compose (`DB_TYPE=postgres` or `DATABASE_URL=postgresql://...`), it seamlessly instantiates `PostgresTaskRepository`.
-   - **Swapping databases requires zero changes to routes or service code.**
-
-## Persistence Proof Procedure
-
-1. Start the stack: `docker compose up -d`
-2. Create a task via HTTP request:
-   `curl -i -X POST http://localhost:8000/tasks -H "Content-Type: application/json" -d '{"title":"Persisted Task"}'`
-3. Restart app and database containers: `docker compose restart`
-4. Fetch tasks to verify row persistence:
-   `curl -i http://localhost:8000/tasks`
-5. The row with `"title": "Persisted Task"` remains present in PostgreSQL storage volume `postgres_data`.
+1. **Client**: Authenticates with email and password via `POST /auth/login`, receiving a JWT.
+2. **Supabase IdP**: Validates credentials and generates signed JWT tokens.
+3. **Backend Server**: Inspects incoming requests, parses the `Authorization` header, and verifies the JWT against Supabase before serving protected routes.

@@ -27,6 +27,15 @@
 - [x] Stage 6 — Persistence verification
 - [x] Stage 7 — Stack documentation
 
+## BE-03 — Auth - Login & Protect
+- [x] Stage 0 — Setup Supabase & Server (`SUPABASE_URL`, `SUPABASE_KEY` client initialization)
+- [x] Stage 1 — Open Auth: Sign Up (`POST /auth/signup`) & Log In (`POST /auth/login`)
+- [x] Stage 2 — Public & Protected Gates (`GET /public/info` & unverified/protected profile structure)
+- [x] Stage 3 — The Guard: Token Verification (`GET /protected/profile` verifying JWT with Supabase)
+- [x] Stage 4 — Dependency Protection & Logout (`get_current_user`, `POST /auth/logout`, `GET /protected/dashboard`)
+- [x] Stage 5 — Swagger UI Authorization (`HTTPBearer` scheme with padlock at `/docs`)
+- [x] Stage 6 — Documentation & GitHub publication
+
 ## Stage Completion Rules
 
 A stage is only considered complete when:
