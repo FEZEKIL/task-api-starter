@@ -17,6 +17,16 @@
 - [x] Stage 4 — Explore SQLite
 - [x] Stage 5 — Database documentation
 
+## BE-04 — Containerize your stack
+- [x] Stage 0 — Docker / Postgres setup (`Dockerfile`, `docker-compose.yml`)
+- [x] Stage 1 — Environment configuration (`.env`, `.env.example`)
+- [x] Stage 2 — Database schema (`sql/init.sql`)
+- [x] Stage 3 — PostgreSQL repository (`app/postgres_repository.py`)
+- [x] Stage 4 — Repository swap & abstraction (`app/repository.py`, `app/services.py`)
+- [x] Stage 5 — Docker Compose stack
+- [x] Stage 6 — Persistence verification
+- [x] Stage 7 — Stack documentation
+
 ## Stage Completion Rules
 
 A stage is only considered complete when:

@@ -2,13 +2,13 @@
 
 ## Project
 
-Task API — FlyRank Backend AI Engineering BE-02.
+Task API — FlyRank Backend AI Engineering BE-04 (Containerized PostgreSQL Stack).
 
-This repository implements a small CRUD API using Python and FastAPI, now backed by a SQLite database.
+This repository implements a CRUD REST API built with FastAPI, supporting storage abstraction via the Repository Pattern with both embedded SQLite and containerized PostgreSQL storage options.
 
 ## Primary Goal
 
-Replace the in-memory storage with a persistent SQLite database while maintaining the same API contract.
+Containerize the FastAPI application and PostgreSQL database with Docker Compose, implementing a PostgreSQL repository abstraction while preserving existing routes and business service logic unchanged.
 
 ## Technology
 
@@ -16,21 +16,33 @@ Replace the in-memory storage with a persistent SQLite database while maintainin
 - FastAPI
 - Uvicorn
 - pytest
-- SQLite
-- sqlite3 (Python standard library)
+- PostgreSQL
+- psycopg2-binary
+- SQLite & sqlite3
+- Docker & Docker Compose
 - Swagger/OpenAPI via FastAPI
 
 ## Important Constraints
 
-1. Tasks must be stored in a SQLite database (`tasks.db`).
-2. Data must survive server restarts.
-3. The database and table must be created automatically if they don't exist.
-4. Three example tasks must be inserted only if the table is empty.
-5. Required endpoints must remain available and behave identically to BE-01.
-6. Required HTTP status codes must not be changed.
+1. Application and database run together via `docker compose up`.
+2. PostgreSQL database credentials and connection parameters are loaded from `.env` (gitignored, `.env.example` committed).
+3. Data persists across container restarts using named Docker volume `postgres_data`.
+4. Initial schema and seed data are populated via `sql/init.sql`.
+5. **Architectural Rule**: Routes and service logic MUST NOT contain database-specific logic. Changing storage implementations from SQLite to PostgreSQL only swaps the repository layer implementation.
+6. All required HTTP status codes and API contracts remain identical to BE-01 and BE-02.
 7. Validation errors must return JSON containing `error`.
-8. Swagger UI must remain available at `/docs`.
-9. `tasks.db` must NOT be committed to Git.
+8. Swagger UI remains available at `/docs`.
+
+## BE-04 STATUS
+
+- Stage 0 — Docker/Postgres setup (`Dockerfile`, `docker-compose.yml`)
+- Stage 1 — Environment configuration (`.env`, `.env.example`)
+- Stage 2 — Database schema (`sql/init.sql`)
+- Stage 3 — PostgreSQL repository (`app/postgres_repository.py`)
+- Stage 4 — Repository swap & layer separation (`app/repository.py`, `app/services.py`)
+- Stage 5 — Docker Compose stack
+- Stage 6 — Persistence verification
+- Stage 7 — Documentation (`README.md`, `Agent.md`, `docs/architecture.md`, `docs/stages.md`)
 
 ## Required Endpoints
 
@@ -43,6 +55,8 @@ Replace the in-memory storage with a persistent SQLite database while maintainin
 | POST | `/tasks` | Create task |
 | PUT | `/tasks/{id}` | Update task |
 | DELETE | `/tasks/{id}` | Delete task |
+| GET | `/stats` | Task statistics |
+| POST | `/reset` | Reset database tasks |
 
 ## Required Status Codes
 
@@ -52,39 +66,17 @@ Replace the in-memory storage with a persistent SQLite database while maintainin
 - Invalid request: 400
 - Unknown task: 404
 
-## Development Stages (BE-02)
-
-### Stage 0 — Create SQLite database
-Create `tasks.db` and the `tasks` table. Insert example tasks if empty.
-
-### Stage 1 — Read from database
-Replace in-memory read logic with SQL queries.
-
-### Stage 2 — Create new tasks
-Replace in-memory creation with SQL `INSERT`.
-
-### Stage 3 — Update and delete with SQL
-Replace in-memory update/delete with SQL `UPDATE` and `DELETE`.
-
-### Stage 4 — Explore SQLite
-Verify manual SQL queries and API reflection.
-
-### Stage 5 — Database Documentation
-Update README with SQLite details and database screenshots.
-
 ## Agent Rules
 
 Before modifying code:
 
 1. Read this file.
-2. Read README.md.
-3. Inspect the current implementation.
-4. Identify the current stage.
-5. Do not redo completed stages unnecessarily.
-6. Run tests after changes.
-7. Update documentation when behavior changes.
-8. Never claim a feature works without testing it.
+2. Read README.md and docs/architecture.md.
+3. Inspect current repository implementation.
+4. Do not violate repository abstraction boundaries.
+5. Run tests (`python -m pytest`) after changes.
+6. Never claim a feature works without verifying tests.
 
 ## Current Stage
 
-BE-02 Stage 0 — Create SQLite database.
+BE-04 Containerized Stack — Completed.

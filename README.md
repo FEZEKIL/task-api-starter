@@ -1,97 +1,149 @@
 # Task API
 
-A small CRUD REST API built with Python and FastAPI as part of the
-FlyRank Backend AI Engineering internship.
+A containerized CRUD REST API built with **Python**, **FastAPI**, **PostgreSQL**, and **Docker Compose** as part of the FlyRank Backend AI Engineering track (**BE-04: Containerize your stack**).
 
 ## Features
 
-- Create tasks
-- Read tasks
-- Update tasks
-- Delete tasks
-- Health check
-- Swagger/OpenAPI documentation
-- **Persistent storage with SQLite**
+- Full task CRUD operations (Create, Read, Update, Delete)
+- Storage abstraction using the **Repository Pattern**
+- Dual storage support: **PostgreSQL** (containerized) and **SQLite** (local embedded)
+- Fully containerized with **Docker** and **Docker Compose**
+- Persistent storage using a named Docker volume (`postgres_data`)
+- Health check and statistics endpoints (`/health`, `/stats`, `/reset`)
+- Swagger / OpenAPI documentation (`/docs`)
 
 ## Tech Stack
 
-- Python
-- FastAPI
-- Uvicorn
-- pytest
-- **SQLite**
+- **Python 3.11+**
+- **FastAPI**
+- **Uvicorn**
+- **PostgreSQL** & **`psycopg2-binary`**
+- **Docker** & **Docker Compose**
+- **SQLite** (for local/embedded mode)
+- **pytest** & **httpx**
 
-## Database
+## Architecture & Storage Evolution
 
-This project uses **SQLite** for data persistence. 
+This project demonstrates clean architecture using the **Repository Pattern**:
 
-- **Why SQLite?** It's lightweight, serverless, and stores the entire database in a single file (`tasks.db`). This makes it perfect for development and small applications without needing a complex database server setup.
-- **Storage**: The database is stored in `tasks.db` in the project root. This file is automatically created and initialized with example tasks on the first run.
-
-### Example SQL Query
-You can inspect the database using any SQLite viewer. Here is an example query to list all tasks:
-```sql
-SELECT * FROM tasks;
+```
+In-memory repository ──► SQLite repository ──► PostgreSQL repository
 ```
 
-## Run Locally
+### Key Architectural Guarantee
+
+**Routes and service logic do NOT change when swapping storage implementations.**
+
+- **Routes (`app/main.py`)**: Handle HTTP requests, responses, and input validation.
+- **Service (`app/services.py`)**: Handles domain orchestration and business logic.
+- **Repository Interface (`app/repository.py`)**: Abstract Base Class (`TaskRepository`) defining the storage contract.
+- **Storage Implementations**:
+  - `PostgresTaskRepository` (`app/postgres_repository.py`)
+  - `SQLiteTaskRepository` (`app/repository.py`)
+
+Changing storage implementations from SQLite to PostgreSQL only swaps the underlying repository implementation (`get_repository()`). Neither the route handlers nor the service functions contain any database-specific driver logic.
+
+See [docs/architecture.md](docs/architecture.md) for detailed architecture documentation.
+
+## Running with Docker Compose (Recommended)
+
+Start the app and PostgreSQL database together with a single command:
 
 ```bash
-pip install -r requirements.txt
-uvicorn app.main:app --reload
+docker-compose up --build
 ```
 
-API: http://localhost:8000
-Swagger: http://localhost:8000/docs
+- **API URL**: http://localhost:8000
+- **Interactive Swagger Docs**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+
+To stop the containers:
+
+```bash
+docker-compose down
+```
+
+## Environment Configuration
+
+Environment variables are managed using `.env`. A sample template is provided in `.env.example`:
+
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=taskdb
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+DATABASE_URL=postgresql://postgres:postgres@db:5432/taskdb
+```
+
+To run locally without Docker, create `.env` or set `DATABASE_URL=sqlite:///tasks.db`.
+
+## Database & Initialization
+
+- **Schema script**: `sql/init.sql` automatically runs when the PostgreSQL container starts for the first time.
+- **Seed data**: Initial example tasks ("Buy groceries", "Read a book", "Write some code") are seeded automatically if the database table is empty.
+
+### Example SQL Query (PostgreSQL)
+
+Inspect the database inside the container:
+
+```bash
+docker-compose exec db psql -U postgres -d taskdb -c "SELECT * FROM tasks;"
+```
+
+## Proof of Persistence
+
+Persistence across container and app restarts is guaranteed using a named Docker volume (`postgres_data`).
+
+### Verification Steps
+
+1. **Start the stack**:
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Create a new task**:
+   ```bash
+   curl -i -X POST http://localhost:8000/tasks \
+     -H "Content-Type: application/json" \
+     -d '{"title":"Persisted Task across restart"}'
+   ```
+
+3. **Restart the containers**:
+   ```bash
+   docker-compose restart
+   ```
+
+4. **Verify row persistence**:
+   ```bash
+   curl -i http://localhost:8000/tasks
+   ```
+   *Result*: The newly created task `"Persisted Task across restart"` is still present, proving data survives restarts.
 
 ## Endpoints
 
-| Method | Endpoint | Status |
-|---|---|---|
-| GET | / | 200 |
-| GET | /health | 200 |
-| GET | /tasks | 200 |
-| GET | /tasks/{id} | 200 / 404 |
-| POST | /tasks | 201 / 400 |
-| PUT | /tasks/{id} | 200 / 400 / 404 |
-| DELETE | /tasks/{id} | 204 / 404 |
-| GET | /stats | 200 |
-| POST | /reset | 200 |
+| Method | Endpoint | Status Codes | Description |
+|---|---|---|---|
+| GET | `/` | 200 | API Information |
+| GET | `/health` | 200 | Health check |
+| GET | `/tasks` | 200 | List tasks (supports `done` filter and `search`) |
+| GET | `/tasks/{id}` | 200 / 404 | Get task by ID |
+| POST | `/tasks` | 201 / 400 | Create task |
+| PUT | `/tasks/{id}` | 200 / 400 / 404 | Update task title and/or done status |
+| DELETE | `/tasks/{id}` | 204 / 404 | Delete task |
+| GET | `/stats` | 200 | Task count statistics |
+| POST | `/reset` | 200 | Reset tasks to default state |
 
-## Extras
+## Running Tests
 
-- **Filtering**: `GET /tasks?done=true` or `GET /tasks?done=false` (using SQL `WHERE`)
-- **Search**: `GET /tasks?search=milk` (using SQL `LIKE`)
-- **Stats**: `GET /stats` (using SQL `COUNT()`)
-- **Reset**: `POST /reset` (clears and restores initial tasks)
+To run the automated test suite locally:
 
-## Example Usage
-
-### Get all tasks
 ```bash
-curl -i http://localhost:8000/tasks
+python -m pytest
 ```
 
-### Create a task
-```bash
-curl -i -X POST http://localhost:8000/tasks -H "Content-Type: application/json" -d '{"title":"Buy milk"}'
-```
+## Project Documentation
 
-## Swagger UI Screenshot
-
-![Swagger UI](screenshots/swagger.png)
-
-## Database Viewer Screenshot
-
-![Database Viewer](screenshots/database.png)
-*(Note: Replace this placeholder with a screenshot of your DB Browser for SQLite showing the tasks table)*
-
-## Project Stages
-
-See docs/stages.md.
-
-## AI Development
-
-See Agent.md.
-
-The optional AI comparison is documented in ai-version/.
+- [docs/architecture.md](docs/architecture.md) — Architectural pattern and storage abstraction breakdown
+- [docs/stages.md](docs/stages.md) — Progress tracking across BE-01, BE-02, and BE-04
+- [Agent.md](Agent.md) — Agent instructions and constraint rules

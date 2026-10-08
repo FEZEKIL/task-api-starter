@@ -1,41 +1,37 @@
-import sqlite3
 import os
+import sqlite3
+from dotenv import load_dotenv
 
-DB_PATH = "tasks.db"
+load_dotenv()
 
-def get_db_connection():
+DB_PATH = os.getenv("SQLITE_DB_PATH", "tasks.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+def get_db_type() -> str:
+    db_type = os.getenv("DB_TYPE", "").lower()
+    if db_type in ("postgres", "postgresql"):
+        return "postgres"
+    if DATABASE_URL.startswith("postgresql://") or DATABASE_URL.startswith("postgres://"):
+        return "postgres"
+    return "sqlite"
+
+def get_sqlite_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
+def get_postgres_connection():
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
 
-    # Create table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            done BOOLEAN NOT NULL DEFAULT 0
-        )
-    ''')
+    url = DATABASE_URL
+    if not url or url.startswith("sqlite"):
+        host = os.getenv("POSTGRES_HOST", "localhost")
+        port = os.getenv("POSTGRES_PORT", "5432")
+        user = os.getenv("POSTGRES_USER", "postgres")
+        password = os.getenv("POSTGRES_PASSWORD", "postgres")
+        dbname = os.getenv("POSTGRES_DB", "taskdb")
+        url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
 
-    # Check if empty
-    cursor.execute('SELECT COUNT(*) FROM tasks')
-    count = cursor.fetchone()[0]
-
-    if count == 0:
-        # Insert example tasks
-        example_tasks = [
-            ("Buy groceries", False),
-            ("Read a book", True),
-            ("Write some code", False)
-        ]
-        cursor.executemany('INSERT INTO tasks (title, done) VALUES (?, ?)', example_tasks)
-        conn.commit()
-
-    conn.close()
-
-if __name__ == "__main__":
-    init_db()
+    conn = psycopg2.connect(url, cursor_factory=RealDictCursor)
+    return conn
