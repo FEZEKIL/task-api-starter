@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Body, Query
+from fastapi import FastAPI, Body, Query, Request, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
 from app.services import TaskService
+from app.auth import auth_router, public_router, protected_router
 
 task_service = TaskService()
 
@@ -12,7 +13,23 @@ async def lifespan(app: FastAPI):
     task_service.init_db()
     yield
 
-app = FastAPI(title="Task API", version="1.0", lifespan=lifespan)
+app = FastAPI(
+    title="Task API",
+    version="1.0",
+    description="Containerized CRUD REST API with Supabase Authentication and Repository Pattern storage abstraction.",
+    lifespan=lifespan
+)
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    if isinstance(exc.detail, dict) and "error" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return JSONResponse(status_code=exc.status_code, content={"error": str(exc.detail)})
+
+# Include Auth & Public/Protected Routers
+app.include_router(auth_router)
+app.include_router(public_router)
+app.include_router(protected_router)
 
 @app.get("/", summary="API Information")
 def read_root():
@@ -20,7 +37,11 @@ def read_root():
     return {
         "name": "Task API",
         "version": "1.0",
-        "endpoints": ["/tasks", "/health", "/stats"]
+        "endpoints": [
+            "/tasks", "/health", "/stats",
+            "/auth/signup", "/auth/login", "/auth/logout",
+            "/public/info", "/protected/profile", "/protected/dashboard"
+        ]
     }
 
 @app.get("/health", summary="Health Check")
