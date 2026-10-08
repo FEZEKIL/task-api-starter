@@ -2,69 +2,74 @@
 
 ## Project
 
-Task API — FlyRank Backend AI Engineering BE-04 (Containerized PostgreSQL Stack).
+Task API — FlyRank Backend AI Engineering (Containerized PostgreSQL & Supabase Auth Stack).
 
-This repository implements a CRUD REST API built with FastAPI, supporting storage abstraction via the Repository Pattern with both embedded SQLite and containerized PostgreSQL storage options.
+This repository implements a CRUD REST API built with FastAPI, supporting storage abstraction via the Repository Pattern (SQLite and PostgreSQL options) and full user authentication via Supabase Auth (Sign Up, Log In, Log Out, and Protected Routes).
 
 ## Primary Goal
 
-Containerize the FastAPI application and PostgreSQL database with Docker Compose, implementing a PostgreSQL repository abstraction while preserving existing routes and business service logic unchanged.
+Provide a secure containerized application featuring Supabase JWT authentication, protected endpoints, and a PostgreSQL database abstraction while preserving existing routes and contracts.
 
 ## Technology
 
-- Python 3.10+
+- Python 3.11+
 - FastAPI
+- Supabase Python SDK (`supabase`)
 - Uvicorn
 - pytest
-- PostgreSQL
-- psycopg2-binary
+- PostgreSQL & psycopg2-binary
 - SQLite & sqlite3
 - Docker & Docker Compose
 - Swagger/OpenAPI via FastAPI
 
 ## Important Constraints
 
-1. Application and database run together via `docker compose up`.
-2. PostgreSQL database credentials and connection parameters are loaded from `.env` (gitignored, `.env.example` committed).
-3. Data persists across container restarts using named Docker volume `postgres_data`.
-4. Initial schema and seed data are populated via `sql/init.sql`.
-5. **Architectural Rule**: Routes and service logic MUST NOT contain database-specific logic. Changing storage implementations from SQLite to PostgreSQL only swaps the repository layer implementation.
-6. All required HTTP status codes and API contracts remain identical to BE-01 and BE-02.
-7. Validation errors must return JSON containing `error`.
-8. Swagger UI remains available at `/docs`.
+1. Supabase Auth parameters (`SUPABASE_URL`, `SUPABASE_KEY`) and database credentials are loaded from `.env` (`.env.example` committed).
+2. Data persists across container restarts using named Docker volume `postgres_data`.
+3. Initial schema and seed data are populated via `sql/init.sql`.
+4. **Architectural Rule**: Routes and service logic MUST NOT contain database-specific logic. Repository layer abstracts storage.
+5. **Auth Rule**: Token verification is enforced via reusable FastAPI Dependency (`get_current_user`). Protected endpoints require `Authorization: Bearer <token>`.
+6. Swagger UI remains available at `/docs` with interactive `HTTPBearer` authorization padlock.
 
-## BE-04 STATUS
+## BE-03 Auth Status
 
-- Stage 0 — Docker/Postgres setup (`Dockerfile`, `docker-compose.yml`)
-- Stage 1 — Environment configuration (`.env`, `.env.example`)
-- Stage 2 — Database schema (`sql/init.sql`)
-- Stage 3 — PostgreSQL repository (`app/postgres_repository.py`)
-- Stage 4 — Repository swap & layer separation (`app/repository.py`, `app/services.py`)
-- Stage 5 — Docker Compose stack
-- Stage 6 — Persistence verification
-- Stage 7 — Documentation (`README.md`, `Agent.md`, `docs/architecture.md`, `docs/stages.md`)
+- Stage 0 — Setup Supabase & Server (`SUPABASE_URL`, `SUPABASE_KEY`)
+- Stage 1 — Open Auth: Sign Up (`POST /auth/signup`) & Log In (`POST /auth/login`)
+- Stage 2 — Public & Protected Gates (`GET /public/info` & profile route)
+- Stage 3 — Token Verification (`GET /protected/profile` via `supabase.auth.get_user()`)
+- Stage 4 — Reusable Dependency (`get_current_user`), Logout (`POST /auth/logout`), & Dashboard (`GET /protected/dashboard`)
+- Stage 5 — Swagger UI Authorization (`HTTPBearer` scheme)
+- Stage 6 — Documentation & GitHub publication
 
 ## Required Endpoints
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/` | API information |
-| GET | `/health` | Health check |
-| GET | `/tasks` | List tasks |
-| GET | `/tasks/{id}` | Get one task |
-| POST | `/tasks` | Create task |
-| PUT | `/tasks/{id}` | Update task |
-| DELETE | `/tasks/{id}` | Delete task |
-| GET | `/stats` | Task statistics |
-| POST | `/reset` | Reset database tasks |
+| Method | Endpoint | Purpose | Authorization |
+|---|---|---|---|
+| GET | `/` | API information | None |
+| GET | `/health` | Health check | None |
+| GET | `/public/info` | Public info | None |
+| POST | `/auth/signup` | Sign Up | None |
+| POST | `/auth/login` | Log In & JWT Issue | None |
+| POST | `/auth/logout` | Log Out / Terminate session | Bearer JWT |
+| GET | `/protected/profile` | Read user profile | Bearer JWT |
+| GET | `/protected/dashboard` | Read user dashboard | Bearer JWT |
+| GET | `/tasks` | List tasks | None |
+| GET | `/tasks/{id}` | Get one task | None |
+| POST | `/tasks` | Create task | None |
+| PUT | `/tasks/{id}` | Update task | None |
+| DELETE | `/tasks/{id}` | Delete task | None |
+| GET | `/stats` | Task statistics | None |
+| POST | `/reset` | Reset database tasks | None |
 
 ## Required Status Codes
 
 - GET success: 200
-- POST success: 201
-- DELETE success: 204
-- Invalid request: 400
-- Unknown task: 404
+- POST signup success: 201
+- POST login success: 200
+- POST logout / DELETE success: 204
+- Invalid input / missing fields: 400
+- Unauthorized / missing / invalid token / bad credentials: 401
+- Unknown task / resource: 404
 
 ## Agent Rules
 
@@ -72,11 +77,10 @@ Before modifying code:
 
 1. Read this file.
 2. Read README.md and docs/architecture.md.
-3. Inspect current repository implementation.
-4. Do not violate repository abstraction boundaries.
-5. Run tests (`python -m pytest`) after changes.
-6. Never claim a feature works without verifying tests.
+3. Do not violate repository abstraction or authentication boundaries.
+4. Run tests (`python -m pytest`) after changes.
+5. Never claim a feature works without verifying tests.
 
 ## Current Stage
 
-BE-04 Containerized Stack — Completed.
+BE-03 Auth & BE-04 Containerized Stack — Completed.
