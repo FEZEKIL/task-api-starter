@@ -147,6 +147,24 @@ curl -i -X POST http://localhost:8000/auth/logout \
   -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>"
 ```
 
+## Polite Scraper (Assignment A9)
+
+This repository includes a production-style, deterministic web scraping pipeline in `scraper/` for Books to Scrape (`https://books.toscrape.com`).
+
+### Quick Start
+```bash
+python -m scraper.src.main
+```
+
+Features:
+- Target classification & `robots.txt` verification
+- Polite User-Agent, 500ms delay, and local caching in `scraper/cache/`
+- Automatic discovery of first 3 catalogue pages & 60 unique book detail pages
+- Schema validation with Pydantic (`output/books.json`)
+- Robust fault survival & run reporting (`output/run-report.json`)
+
+Detailed documentation and ethics statement are available in [scraper/README.md](scraper/README.md).
+
 ## Running Tests
 
 Run the complete test suite (21 tests covering tasks, repositories, and auth):

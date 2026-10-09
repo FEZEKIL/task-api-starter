@@ -36,6 +36,15 @@
 - [x] Stage 5 — Swagger UI Authorization (`HTTPBearer` scheme with padlock at `/docs`)
 - [x] Stage 6 — Documentation & GitHub publication
 
+## A9 — The Polite Scraper
+- [x] Stage 0 — Classify scraping target (`https://books.toscrape.com`, `robots.txt` check, policy statement)
+- [x] Stage 1 — Fetch and cache HTML (`PoliteFetcher`, User-Agent, timeout, disk caching)
+- [x] Stage 2 — Discover three catalogue pages (extract product URLs, follow next link, 500ms delay, deduplicate)
+- [x] Stage 3 — Extract book details (parse 60 detail pages, extract 8 raw fields + provenance)
+- [x] Stage 4 — Validate normalized records (`price_gbp` float, Pydantic schema validation, `output/books.json`)
+- [x] Stage 5 — Survive failures and report the run (exception boundaries, 1 retry for 5xx/timeouts, `output/run-report.json`, test with broken URL)
+- [x] Stage 6 — Publish scraper evidence (`scraper/README.md`, schema, run metrics, no-browser justification, ethics statement)
+
 ## Stage Completion Rules
 
 A stage is only considered complete when:
