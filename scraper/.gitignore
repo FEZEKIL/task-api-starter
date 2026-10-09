@@ -1,0 +1,12 @@
+# Cache files except .gitkeep
+cache/*
+!cache/.gitkeep
+
+# Output files except .gitkeep
+output/*
+!output/.gitkeep
+
+# Python artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
